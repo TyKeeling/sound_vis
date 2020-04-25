@@ -13,13 +13,20 @@ import time
 class Datastream:
     def __init__(self, wavfile):
         self.CHUNK = 1024
-        self.slinter = 2 
+        self.spect_len = 100
         self.wf = wave.open(wavfile, 'rb')
         self.p = pyaudio.PyAudio()
         self.stream = self.p.open(format=self.p.get_format_from_width(self.wf.getsampwidth()),
                 channels=self.wf.getnchannels(),
                 rate=self.wf.getframerate(),
                 output=True)
+
+        self.numpy_chunk = None 
+
+
+        # self.chunks_to_display = 256
+        # self.combined_chunks = np.zeros((self.CHUNK), dtype=np.int8)
+
 
     def nextchunk(self):
         data = self.wf.readframes(self.CHUNK)
@@ -28,9 +35,21 @@ class Datastream:
         self.stream.write(data)
 
         data_int = struct.unpack(str(2*self.CHUNK)+'h', data)
-        return np.array(data_int, dtype=np.int8)[::self.slinter]
+        self.numpy_chunk = np.array(data_int, dtype=np.int8)[::2]
+        return self.numpy_chunk
+
+    # def getSpectogram(self):
+    
+    # def longerchunk(self):
+    #     # print(np.shape(self.combined_chunks[self.CHUNK:]), np.shape(self.nextchunk()))
+    #     self.combined_chunks = np.concatenate(
+    #         (self.combined_chunks[int(self.CHUNK/self.chunks_to_display):], 
+    #         self.nextchunk()[::self.chunks_to_display]))
+    #     return self.combined_chunks
+
         
 datastream = Datastream("02-Nangs.wav")
+datastream2 = Datastream("02-Nangs.wav")
 
 # while True:
 #     datastream.nextchunk()
@@ -56,24 +75,20 @@ pg.setConfigOptions(antialias=True)
 # # p5v.setLimits(xMin=0, xMax=1000, yMin=-128, yMax=128)
 # win.addItem(p5)
 
-# win.nextRow()
-
 p6 = win.addPlot(title="Audio Channel")
 p6v = p6.getViewBox()
 p6v.setRange(xRange=(0,1000), yRange=(-128,128))
 p6v.setMouseEnabled(x=False, y=False)
-curve = p6.plot(pen='y')
-data = datastream.nextchunk()
-# ptr = 0
+curve6 = p6.plot(pen='y')
+
+win.nextRow()
+
 def update():
-    global curve, data, ptr, p6
-    curve.setData(datastream.nextchunk())
-    # if ptr == 0:
-    #     p6.enableAutoRange('xy', False)  ## stop auto-scaling after the first data set is plotted
-    # ptr += 1
+    global curve6
+    curve6.setData(datastream.nextchunk())
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
-timer.start(0.01)
+timer.start(0.000001)
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
 if __name__ == '__main__':
@@ -81,6 +96,7 @@ if __name__ == '__main__':
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
         QtGui.QApplication.instance().exec_()
 
+####################
 
 # class App(QtGui.QMainWindow):
 #     def __init__(self, parent=None):
@@ -150,7 +166,7 @@ if __name__ == '__main__':
 #     sys.exit(app.exec_())
 
 
-
+####################
 
 # ## Always start by initializing Qt (only once per application)
 # app = QtGui.QApplication([])
