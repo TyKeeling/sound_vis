@@ -51,14 +51,7 @@ class Datastream:
             raise BufferError("end of WAV.")
 
         self.stream.write(data)
-
-        # bytelist = str(data).split("\\x")
-        # print(bytelist)
-        data_int = struct.unpack(str(self.CHUNK)+'h', data)
-        if self.inc < 1:
-            self.inc += 1 
-            print(data_int)
-        self.numpy_chunk = np.array(data_int, dtype=np.int8)[::2]
+        self.numpy_chunk = np.frombuffer(data, dtype=np.int16)
         return self.numpy_chunk
         
     def nextChunkLong(self):
@@ -79,14 +72,11 @@ class Datastream:
 datastream = Datastream("sine.wav")
 
 
-# while True:
-#     datastream.nextChunk()
-
-
-#QtGui.QApplication.setGraphicsSystem('raster')
-app = QtGui.QApplication([])
+# QtGui.QApplication.setGraphicsSystem('raster')
 #mw = QtGui.QMainWindow()
 #mw.resize(800,800)
+
+app = QtGui.QApplication([])
 
 win = pg.GraphicsWindow(title="Music Visualizer")
 win.resize(1000,600)
@@ -105,7 +95,7 @@ pg.setConfigOptions(antialias=True)
 
 p6 = win.addPlot(title="Audio Channel")
 p6v = p6.getViewBox()
-p6v.setRange(xRange=(0,1000), yRange=(-128,128))
+p6v.setRange(xRange=(0,1000), yRange=(-32768,32768))
 p6v.setMouseEnabled(x=False, y=False)
 curve6 = p6.plot(pen='y')
 
