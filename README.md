@@ -1,1 +1,2 @@
-# sound_vis
+# Visualizer 
+Pretty Python PyQtGraph music visualize nice 
