@@ -6,7 +6,6 @@ import numpy as np
 import pyqtgraph as pg
 import pyaudio
 import wave
-import sys
 import time
 import scipy
 import random
@@ -15,7 +14,7 @@ class Datastream:
     def __init__(self, wavfile):
         self.CHUNK = 1024
         self.chunks_to_display = 16
-        self.sections = 100 # Parts to evaluate integrals
+        self.sections = 64 # Parts to evaluate integrals
 
         self.wf = wave.open(wavfile, 'rb')
         self.p = pyaudio.PyAudio()
@@ -74,59 +73,61 @@ class Datastream:
             areas[i] = np.max(theFunc[i*section_len:(i+1)*section_len])
         return areas
 
-        
-        
-datastream = Datastream("01.-My-Old-Man.wav")
+class InvalidKWargs(Exception):
+    pass
 
+class Grapher:
+    def __init__(self, **kwargs):
 
-# QtGui.QApplication.setGraphicsSystem('raster')
-#mw = QtGui.QMainWindow()
-#mw.resize(800,800)
+        if "datastream" in kwargs.keys():
+            self.datastream = kwargs.get("datastream")
+            print("datastream")
+        elif "file" in kwargs.keys():
+            self.datastream = Datastream(kwargs.get("file"))
+            print("file")
+        else:
+            raise InvalidKWargs('kwargs must contain "datastream" object or "file" string')
 
-app = QtGui.QApplication([])
+        self.app = QtGui.QApplication([])
 
-win = pg.GraphicsWindow(title="Music Visualizer")
-win.resize(800,500)
-win.setWindowTitle('Window for Visualizer')
+        self.win = pg.GraphicsWindow(title="Music Visualizer")
+        self.win.resize(800,500)
+        self.win.setWindowTitle('Window for Visualizer')
 
-# Enable antialiasing for prettier plots
-pg.setConfigOptions(antialias=True)
+        # Enable antialiasing for prettier plots
+        pg.setConfigOptions(antialias=True)
 
-p9 = win.addPlot(title="Long FFT")
-# p9.setLogMode(x=False, y=True)
-p9v = p9.getViewBox()
-p9v.setRange(xRange=(0,1000), yRange=(10,1000000))
-# p6v.setMouseEnabled(x=False, y=False)
-curve9 = p9.plot(pen='c', width=20)
+        self.p9 = self.win.addPlot(title="Long FFT")
+        # p9.setLogMode(x=False, y=True)
+        self.p9v = self.p9.getViewBox()
+        self.p9v.setRange(xRange=(0,1000), yRange=(10,1000000))
+        # p6v.setMouseEnabled(x=False, y=False)
+        self.curve9 = self.p9.plot(pen='c', width=20)
 
-p5 = win.addPlot(title="Areas")
-p5v = p5.getViewBox()
-p5v.setRange(xRange=(0,datastream.sections-1))
-# p6v.setMouseEnabled(x=False, y=False)
-# curve5 = p5.plot(pen='y', fillLevel=0, brush=(0,0,255,150))
-curve5 = p5.plot(pen='y')
+        self.p5 = self.win.addPlot(title="Areas")
+        self.p5v = self.p5.getViewBox()
+        self.p5v.setRange(xRange=(0,self.datastream.sections-1), yRange=(10,1000000))
+        self.curve5 = self.p5.plot(pen='y', fillLevel=0, brush=(0,0,255,150), step=True)
 
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update)
+        self.timer.start(0.001)
 
-def update():
-    global curve9, curve5
+    def update(self):
+        try:
+            # Must call nextChunk/multiChunk to update chunks
+            self.datastream.nextChunk()
+            self.datastream.multiChunk()
+            self.curve9.setData(self.datastream.getLongSpectrogram())
+            self.curve5.setData(self.datastream.getAreas())
 
-    try:
-        # Must call nextChunk/multiChunk to update chunks
-        datastream.nextChunk()
-        datastream.multiChunk()
-        curve9.setData(datastream.getLongSpectrogram())
-        curve5.setData(datastream.getAreas())
-
-    except BufferError:
-        datastream.close()
-        sys.exit("end of WAV")
-
-timer = QtCore.QTimer()
-timer.timeout.connect(update)
-timer.start(0.001)
+        except BufferError:
+            self.datastream.close()
+            sys.exit("end of WAV")
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
 if __name__ == '__main__':
     import sys
+    grapher = Grapher(file="sine.wav")
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        QtGui.QApplication.instance().exec_()
+        grapher.app.instance().exec_()
