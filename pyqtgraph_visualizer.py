@@ -127,8 +127,8 @@ class Grapher:
 ## Start Qt event loop unless running in interactive mode or using pyside.
 if __name__ == '__main__':
     import sys
-    # import pyqtgraph.examples
-    # pyqtgraph.examples.run()
+    import pyqtgraph.examples
+    pyqtgraph.examples.run()
 
     grapher = Grapher(file="01.-My-Old-Man.wav", sections=2)
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
