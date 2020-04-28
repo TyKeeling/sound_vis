@@ -1,5 +1,3 @@
-# import pyqtgraph.examples
-# pyqtgraph.examples.run()
 # -*- coding: utf-8 -*-
 from pyqtgraph.Qt import QtGui, QtCore
 import numpy as np
@@ -11,10 +9,10 @@ import scipy
 import random
 
 class Datastream:
-    def __init__(self, wavfile):
+    def __init__(self, wavfile, sections=64):
         self.CHUNK = 1024
         self.chunks_to_display = 16
-        self.sections = 64 # Parts to evaluate integrals
+        self.sections = sections # Parts to evaluate integrals
 
         self.wf = wave.open(wavfile, 'rb')
         self.p = pyaudio.PyAudio()
@@ -81,12 +79,13 @@ class Grapher:
 
         if "datastream" in kwargs.keys():
             self.datastream = kwargs.get("datastream")
-            print("datastream")
         elif "file" in kwargs.keys():
             self.datastream = Datastream(kwargs.get("file"))
-            print("file")
         else:
             raise InvalidKWargs('kwargs must contain "datastream" object or "file" string')
+
+        if "sections" in kwargs.keys():
+            self.datastream.sections = kwargs.get("sections")
 
         self.app = QtGui.QApplication([])
 
@@ -128,6 +127,9 @@ class Grapher:
 ## Start Qt event loop unless running in interactive mode or using pyside.
 if __name__ == '__main__':
     import sys
-    grapher = Grapher(file="sine.wav")
+    # import pyqtgraph.examples
+    # pyqtgraph.examples.run()
+
+    grapher = Grapher(file="01.-My-Old-Man.wav", sections=2)
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
         grapher.app.instance().exec_()
